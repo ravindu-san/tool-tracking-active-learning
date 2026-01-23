@@ -38,6 +38,38 @@ from sklearn.metrics import f1_score
 # from model.lstm_classif import LSTM_CLASSIF
 
 
+from skorch.dataset import CVSplit
+# from skorch.dataset import Dataset
+
+class SkorchActiveLearner(ActiveLearner):
+    def teach(self, X, y, only_new=False, **fit_kwargs):
+        if self.X_training is None or only_new:
+            self.X_training = X
+            self.y_training = y
+        else:
+            try:
+                # print(f"X_training shape: {self.X_training.shape}, X shape: {X.shape}")
+                # self.X_training = np.vstack((self.X_training, X))
+                self.X_training = np.concatenate((self.X_training, X), axis=0)
+                self.y_training = np.concatenate((self.y_training, y))
+            except ValueError:
+                raise ValueError('the dimensions of the new training data and label must'
+                                 'agree with the training data and labels provided so far')
+
+
+        # self.estimator.train_split = CVSplit(cv=0.15 / 0.85, stratified=True, random_state=42)
+        
+        # self.estimator.fit(X, y, **fit_kwargs)
+        self.estimator.fit(self.X_training, self.y_training, **fit_kwargs)
+        
+        self.estimator.load_params(f_params='best_weights.pt')
+        
+        # self.X_training = np.vstack([self.X_training, X])
+        # self.y_training = np.concatenate([self.y_training, y])
+
+
+
+
 def cycle_AL(
     X_train: np.ndarray | None,
     y_train: np.ndarray | None,
@@ -127,7 +159,10 @@ def cycle_AL(
     else:
         # in this case the classifier is assumed to be a non-default sklearn classifier
         # if the model is wrongly specified, activelearner will give an error
-        learner = ActiveLearner(
+        # learner = ActiveLearner(
+        #     estimator=classifier, query_strategy=query_strategy, X_training=X_train_org, y_training=y_train
+        # )
+        learner = SkorchActiveLearner(
             estimator=classifier, query_strategy=query_strategy, X_training=X_train_org, y_training=y_train
         )
 
@@ -248,6 +283,7 @@ def cycle_AL(
                 only_new=False,
             )  # appends instances to labeled set
             if committee_classifiers != []:
+                print("commitee classifier teach.......................")
                 committee.teach(
                     X_pool[query_idx].reshape(shape, -1),
                     y_pool[query_idx].reshape(
@@ -255,6 +291,10 @@ def cycle_AL(
                     ),
                 )
 
+        if "X_start" in query_args:
+            # query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0) if "X_pool_emb" in query_args else learner.X_training
+            query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0)
+            
         if is_stream is False:
             # remove queried instance from the pool
             X_pool = np.delete(X_pool, query_idx, axis=0)
@@ -281,9 +321,9 @@ def cycle_AL(
         #     query_args["X_pool_emb"] = X_pool_emb
 
         # update other parameters of query strategy
-        if "X_start" in query_args:
-            # query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0) if "X_pool_emb" in query_args else learner.X_training
-            query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0)
+        # if "X_start" in query_args:
+        #     # query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0) if "X_pool_emb" in query_args else learner.X_training
+        #     query_args["X_start"] = np.concat((query_args["X_start"], X_pool[query_idx]), axis=0)
         if "classifier" in query_args:
             query_args["classifier"] = learner.estimator
 

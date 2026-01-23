@@ -68,3 +68,7 @@ activelearning/notebooks/
 #exceptions: don't ignore what is here
 !docs/iris_random.png
 !docs/iris_comparison.png
+
+
+*.pt
+*.json
