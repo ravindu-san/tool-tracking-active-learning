@@ -23,6 +23,7 @@ from activelearning.queries.representative.coreset_query import query_coreset
 from activelearning.queries.representative.coreset_query_stream import stream_query_coreset
 from activelearning.queries.representative.density_query import query_density
 from activelearning.queries.representative.diversity_query import query_diversity
+from activelearning.queries.hybrid.badge import query_badge
 from activelearning.queries.representative.diversity_query_stream import stream_query_diversity
 from activelearning.queries.representative.kmeans_query import query_kmeans, query_kmeans_foreach
 from activelearning.queries.representative.probcover_query import estimate_delta, query_probcover
@@ -210,6 +211,8 @@ def set_query_args(
     """
     if query_strategy == query_kmeans_foreach:
         query_args = {"X_pool": X_pool, "K": K, "n_instances": n_instances}
+    if query_strategy == query_kmeans:
+        query_args = {"X_pool": X_pool, "K": K, "n_instances": n_instances}
     elif query_strategy == query_density:
         query_args = {"X_pool": X_pool, "n_instances": n_instances, "metric": metric}
     elif query_strategy == query_diversity:
@@ -222,7 +225,7 @@ def set_query_args(
         # delta = estimate_delta(X_pool, K=len(np.unique(y_pool)))  # estimate delta for probcover
         # query_args = {"X_pool": X_pool, "X_start": X_start, "n_instances": n_instances, "delta": delta}
 
-        delta = estimate_delta(X_pool, K=len(np.unique(y_pool)))  # estimate delta for probcover
+        delta = estimate_delta(classifier=classifier, X_pool=X_pool, K=len(np.unique(y_pool)))  # estimate delta for probcover
         query_args = {"X_pool": X_pool, "X_start": X_start, "n_instances": n_instances, "delta": delta}
     elif query_strategy in (stream_query_diversity, stream_query_coreset):
         query_args = {
@@ -261,6 +264,9 @@ def set_query_args(
         or (query_strategy in (max_disagreement_sampling, mc_bald))
         or (query_strategy in (mc_max_entropy, mc_max_varratios, mc_max_meanstd))
     ):
+        query_args = {"X_pool": X_pool, "n_instances": n_instances}
+
+    elif query_strategy == query_badge:
         query_args = {"X_pool": X_pool, "n_instances": n_instances}
 
     return query_args
@@ -369,6 +375,8 @@ def set_query_names(query_strategies: list) -> list[str]:
             col_names.append("MC max VarRatios")
         elif q == mc_max_meanstd:
             col_names.append("MC max meanstd")
+        elif q == query_badge:
+            col_names.append("BADGE")
         # not implemented
         else:
             raise ValueError("Received a not valid query strategy")

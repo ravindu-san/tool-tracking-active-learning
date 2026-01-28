@@ -19,7 +19,7 @@ from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, f
 
 from al_data_process.data_preprocess import create_windowed_ts, map_class_label_to_idx
 from al_data_process.dataset import stratified_sampling, stratified_sampling_train_val
-from model import LSTM_CLASSIF
+from model.lstm_classif import LSTM_CLASSIF
 
 torch.manual_seed(1337)
 
@@ -463,7 +463,7 @@ if __name__ == "__main__":
         y_train = train_dataset.dataset[train_dataset.indices][-1].numpy()
     else:
         y_train = [sample[-1] for sample in train_dataset]
-    classes, per_class_counts = np.unique(y_train, return_counts=True, sorted=True)
+    classes, per_class_counts = np.unique(y_train, return_counts=True)
 
     # criterion = FocalLoss(torch.from_numpy(per_class_counts), gamma=3.0)
     def compute_class_weights(class_counts, beta=0.999):

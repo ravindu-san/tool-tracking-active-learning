@@ -4,6 +4,8 @@ import numpy as np
 from modAL.utils.selection import multi_argmin
 from sklearn.cluster import KMeans
 
+from embeddings.embedding import get_embeddings
+
 
 # calculates matrix of distance from centroids
 def kmeans_min_distances(K: int, X_pool: np.ndarray, for_each: bool = False, random_state: int = None) -> np.ndarray:
@@ -87,10 +89,15 @@ def query_kmeans_foreach(
     if n_instances < K:
         K = n_instances
 
+
+    X_pool_original = X_pool
+    X_pool, _ = get_embeddings(classifier.estimator, X_pool)
+    # X_start, _ = get_embeddings(classifier.estimator, X_start)
+    
     dist_matrix = kmeans_min_distances(K, X_pool, for_each=True, random_state=random_state)
     sorted_idxs = np.argsort(dist_matrix, axis=0)
     n_for_each = n_instances // K
 
     selected_idxs = np.array(sorted_idxs[0 : n_for_each + 1, :].flatten()).tolist()
     selected_idxs = selected_idxs[0:n_instances]
-    return selected_idxs, X_pool[selected_idxs, :]
+    return selected_idxs, X_pool_original[selected_idxs]

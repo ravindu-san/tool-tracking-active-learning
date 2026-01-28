@@ -4,6 +4,8 @@ import numpy as np
 from modAL.density import information_density
 from modAL.utils.selection import multi_argmax
 
+from embeddings.embedding import get_embeddings
+
 
 def query_density(
     # classifier: Any, X_pool: np.ndarray, n_instances: int = 1, metric: str = "euclidean"
@@ -29,7 +31,10 @@ def query_density(
     # idxs, _ = multi_argmax(utility, n_instances=n_instances)
     # return idxs, X_pool[idxs]
 
+    X_pool_original = X_pool
+    X_pool, _ = get_embeddings(classifier.estimator, X_pool)
+
     utility = information_density(X_pool, metric)
 
     idxs, _ = multi_argmax(utility, n_instances=n_instances)
-    return idxs, X_pool[idxs]
+    return idxs, X_pool_original[idxs]

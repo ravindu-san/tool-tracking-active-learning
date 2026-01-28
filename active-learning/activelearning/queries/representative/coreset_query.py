@@ -3,6 +3,8 @@ from typing import Any
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 
+from embeddings.embedding import get_embeddings
+
 
 def query_coreset(
     classifier: Any, X_pool: np.ndarray, X_start: np.ndarray | None, n_instances: int = 1
@@ -30,7 +32,11 @@ def query_coreset(
         return random_idx, random_instances
     else:
         selected_idx = []
+
         X_pool_original = X_pool
+        X_pool, _ = get_embeddings(classifier.estimator, X_pool)
+        X_start, _ = get_embeddings(classifier.estimator, X_start)
+
         div_matrix = euclidean_distances(X_pool, X_start)
         for _ in range(n_instances):
             distmin = div_matrix.min(axis=1)
@@ -48,4 +54,4 @@ def query_coreset(
                 div_matrix = np.hstack([div_matrix, new_col])
 
         selected_idx = np.array(selected_idx, dtype=int)
-        return selected_idx, X_pool_original[selected_idx, :]
+        return selected_idx, X_pool_original[selected_idx]

@@ -2,6 +2,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 
+from embeddings.embedding import get_embeddings
+
 
 def query_probcover(
     classifier,
@@ -34,6 +36,10 @@ def query_probcover(
         random_instances = X_pool[random_idx, :]
         return random_idx, random_instances
     else:
+        X_pool_original = X_pool
+        X_pool, _ = get_embeddings(classifier.estimator, X_pool)
+        X_start, _ = get_embeddings(classifier.estimator, X_start)
+        
         # calculate distances between X_pool and X_train
         distances_to_train = euclidean_distances(X_pool, X_start)
         # mark points in X_pool that are farther than delta from all labeled points (uncovered points)
@@ -72,7 +78,7 @@ def query_probcover(
             adjacency_matrix = np.delete(adjacency_matrix, np.where(neighbors), axis=1)
             uncovered_indices = np.delete(uncovered_indices, np.where(neighbors))
 
-        return query_idxs, X_pool[query_idxs, :]
+        return query_idxs, X_pool_original[query_idxs]
 
 
 def is_ball_pure(D: np.ndarray, i: int, delta: float, labels: np.ndarray) -> bool:
@@ -93,7 +99,7 @@ def is_ball_pure(D: np.ndarray, i: int, delta: float, labels: np.ndarray) -> boo
     return len(set(labels_in_ball)) == 1
 
 
-def estimate_delta(X_pool: np.ndarray, K: int, alpha: float = 0.95) -> float:
+def estimate_delta(classifier: np.ndarray, X_pool: np.ndarray, K: int, alpha: float = 0.95) -> float:
     """Estimates delta for probcover query. Delta is the radius size of the balls.
     The estimation is the largest radius so that at least 95% of the balls (one ball for data point) is pure.
     Pure means that it contains only points with the same label.
@@ -107,6 +113,8 @@ def estimate_delta(X_pool: np.ndarray, K: int, alpha: float = 0.95) -> float:
     Returns:
         delta: chosen value of delta. if no value obtains the requested purity, the smallest value is returned
     """
+    X_pool, _ = get_embeddings(classifier=classifier, X=X_pool)
+    
     kmeans_mod = KMeans(n_clusters=K)
     kmeans_mod.fit(X_pool)
     labels = kmeans_mod.labels_  # use clusters as pseudolabels

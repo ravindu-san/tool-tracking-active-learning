@@ -4,6 +4,8 @@ import numpy as np
 from modAL.utils.selection import multi_argmax
 from sklearn.metrics.pairwise import cosine_similarity
 
+from embeddings.embedding import get_embeddings
+
 
 def diversity_measure(X_pool: np.ndarray, X_start: np.ndarray | None) -> np.ndarray:
     """Calculates the diversity of each instance in the pool set from the instances
@@ -52,5 +54,9 @@ def query_diversity(
         random_instances = X_pool[random_idx, :]
         return random_idx, random_instances
     else:
+        X_pool_original = X_pool
+        X_pool, _ = get_embeddings(classifier.estimator, X_pool)
+        X_start, _ = get_embeddings(classifier.estimator, X_start)
+        
         utility = diversity_measure(X_pool, X_start)
         return multi_argmax(utility, n_instances=n_instances)
